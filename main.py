@@ -1,7 +1,9 @@
 import sys
 import asyncio
+from typing import Dict
 from aiofile import async_open
 from aiopath import AsyncPath
+from aioshutil import copyfile
 
 
 async def main(source_dir_path: str, output_dir_path: str):
@@ -11,13 +13,14 @@ async def main(source_dir_path: str, output_dir_path: str):
         print(f"Source directory ${source_dir_path} does not exist")
         return
 
-    dir_data = {}
+    dir_data: Dict[str, AsyncPath] = {}
     await build_dir_data(apath, dir_data)
 
-    print(dir_data)
+    copy_files_manager = CopyFilesManager()
+    await copy_files_manager.copy_files(dir_data, output_dir_path)
 
 
-async def build_dir_data(path: AsyncPath, dict: dict):
+async def build_dir_data(path: AsyncPath, dict: Dict[str, AsyncPath]):
     async for file in path.iterdir():
         if await file.is_dir():
             await build_dir_data(file, dict)
@@ -32,8 +35,7 @@ async def build_dir_data(path: AsyncPath, dict: dict):
                 files_with_this_suffix = []
                 dict[file_suffix] = files_with_this_suffix
 
-            # fixme actually should be path, to use for copy later
-            files_with_this_suffix.append(file.name)
+            files_with_this_suffix.append(file)
 
 
 class ArgumentParser:
@@ -45,6 +47,24 @@ class ArgumentParser:
             return source_dir_path, output_dir_path
         else:
             raise Exception()
+
+
+class CopyFilesManager:
+    async def copy_files(self, files_data: Dict[str, AsyncPath], output_dir_path: str):
+        print(f"Moving files into directory /{output_dir_path}...")
+        async_output_path = AsyncPath(output_dir_path)
+        if await async_output_path.exists() == False:
+            await async_output_path.mkdir()
+
+        for ext in files_data:
+            async_ext_path = AsyncPath(output_dir_path + "/" + ext)
+            print(f"Moving files into sub-directory {async_ext_path}")
+            if await async_ext_path.exists() == False:
+                await async_ext_path.mkdir()
+
+            file_paths = files_data[ext]
+            for file in file_paths:
+                await copyfile(file, async_ext_path / file.name)
 
 
 if __name__ == "__main__":

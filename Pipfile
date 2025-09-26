@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 aiofile = "*"
 aiopath = "*"
+aioshutil = "*"
 
 [dev-packages]
 
