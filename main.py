@@ -14,26 +14,26 @@ async def main(source_dir_path: str, output_dir_path: str):
         return
 
     dir_data: Dict[str, AsyncPath] = {}
-    await build_dir_data(apath, dir_data)
+    await read_folder(apath, dir_data)
 
     copy_files_manager = CopyFilesManager()
     await copy_files_manager.copy_files(dir_data, output_dir_path)
 
 
-async def build_dir_data(path: AsyncPath, dict: Dict[str, AsyncPath]):
+async def read_folder(path: AsyncPath, dir_data: Dict[str, AsyncPath]):
     async for file in path.iterdir():
         if await file.is_dir():
-            await build_dir_data(file, dict)
+            await read_folder(file, dir_data)
         else:
             file_suffix = file.suffix
             if file_suffix == "":
                 file_suffix = "other"
 
-            files_with_this_suffix = dict.get(file_suffix)
+            files_with_this_suffix = dir_data.get(file_suffix)
 
             if files_with_this_suffix == None:
                 files_with_this_suffix = []
-                dict[file_suffix] = files_with_this_suffix
+                dir_data[file_suffix] = files_with_this_suffix
 
             files_with_this_suffix.append(file)
 
